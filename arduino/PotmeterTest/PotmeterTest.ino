@@ -1,30 +1,58 @@
 int target = 512;
 
+struct Potmeter
+{
+  int inputPin;
+  int outputPin;
+  int target;
+  int now;
+
+  Potmeter(int inputPin, int outputPin, int target, int now) :
+    inputPin(inputPin),
+    outputPin(outputPin),
+    target(target),
+    now(now)
+  {
+    pinMode(inputPin, INPUT);
+    pinMode(outputPin, OUTPUT);
+  }
+};
+
+Potmeter potmeters[2] = {
+  Potmeter(A0, 2, 0, 0),
+  Potmeter(A1, 3, 0, 0),
+};
+
 void setup()
 {
   Serial.begin(9600);
-  
-  pinMode(2, OUTPUT);
-  pinMode(A0, INPUT);
 }
 
 void loop()
 {
-  int now = analogRead(A0);
-  Serial.print(now);
-  Serial.print("->");
-  Serial.println(target);
-
-  if (Serial.available() > 0)
+  for (int i = 0; i < sizeof(potmeters) / sizeof(Potmeter); i++)
   {
-    target = Serial.readStringUntil("\r\n").toInt();
+    Potmeter* pot = &potmeters[i];
+    
+    pot->now = analogRead(pot->inputPin);
+    Serial.print(i);
+    Serial.print(":");
+    Serial.println(pot->now);
+    
+    if (pot->now < pot->target)
+    {
+      digitalWrite(pot->outputPin, HIGH);
+      delay(10);
+    }
+    
+    digitalWrite(pot->outputPin, LOW);
   }
   
-  if (now > target)
+  if (Serial.available() > 0)
   {
-    digitalWrite(2, HIGH);
-    delay(5);
+    String data = Serial.readStringUntil("\r\n");
+    int index = data.substring(0, data.indexOf(":")).toInt();
+    int value = data.substring(data.indexOf(":") + 1, data.length()).toInt();
+    potmeters[index].target = value;
   }
-
-  digitalWrite(2, LOW);
 }
